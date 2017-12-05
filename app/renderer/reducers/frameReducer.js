@@ -29,6 +29,7 @@ const setFullScreen = (state, action) => {
 }
 
 const closeFrame = (state, action) => {
+  console.log("remove frame", action.frameKey)
   const index = frameStateUtil.getFrameIndex(state, action.frameKey)
   if (index === -1) {
     return state
@@ -61,7 +62,7 @@ const closeFrame = (state, action) => {
   } else if (hoverState && frameStateUtil.getPreviewFrameKey(state) === action.frameKey) {
     state = frameStateUtil.setPreviewFrameKey(state, null)
   }
-
+  console.log(frameStateUtil.getFrames(state).toJS())
   return state
 }
 
@@ -188,6 +189,7 @@ const frameReducer = (state, action, immutableAction) => {
           state = state.setIn(['frames', index, 'hasBeenActivated'], true)
         }
         state = frameStateUtil.updateTabPageIndex(state, tabId)
+        console.log(frameStateUtil.getFrames(state).toJS())
       }
       break
     case windowConstants.WINDOW_SET_NAVIGATED:

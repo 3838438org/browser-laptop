@@ -178,13 +178,19 @@ const tabsReducer = (state, action, immutableAction) => {
             const isPinned = tabState.isTabPinned(state, tabId)
             const nonPinnedTabs = tabState.getNonPinnedTabsByWindowId(state, windowId)
             const pinnedTabs = tabState.getPinnedTabsByWindowId(state, windowId)
-
             if (nonPinnedTabs.size > 1 ||
               (nonPinnedTabs.size > 0 && pinnedTabs.size > 0)) {
               setImmediate(() => {
                 if (isPinned) {
                   // if a tab is pinned, unpin before closing
                   state = tabs.pin(state, tabId, false)
+                }
+                const isActive = tabValue.get('active')
+                if (isActive) {
+                  const nextActiveTabId = tabs.getNextActiveTab(state, tabId)
+                  if (nextActiveTabId !== tabState.TAB_ID_NONE) {
+                    tabs.setActive(nextActiveTabId)
+                  }
                 }
                 tabs.closeTab(tabId, action.get('forceClosePinned'))
               })
@@ -201,8 +207,6 @@ const tabsReducer = (state, action, immutableAction) => {
         if (tabId === tabState.TAB_ID_NONE) {
           break
         }
-        const nextActiveTabId = tabs.getNextActiveTab(state, tabId)
-
         // Must be called before tab is removed
         // But still check for no tabId because on tab detach there's a dummy tabId
         const tabValue = tabState.getByTabId(state, tabId)
@@ -211,11 +215,6 @@ const tabsReducer = (state, action, immutableAction) => {
           state = tabs.updateTabsStateForWindow(state, windowIdOfTabBeingRemoved)
         }
         state = tabState.removeTabByTabId(state, tabId)
-        setImmediate(() => {
-          if (nextActiveTabId !== tabState.TAB_ID_NONE) {
-            tabs.setActive(nextActiveTabId)
-          }
-        })
         tabs.forgetTab(tabId)
       }
       break

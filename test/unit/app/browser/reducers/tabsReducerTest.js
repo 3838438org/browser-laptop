@@ -267,7 +267,6 @@ describe('tabsReducer unit tests', function () {
 
     beforeEach(function () {
       this.removeTabByTabIdSpy = sinon.stub(this.tabStateAPI, 'removeTabByTabId', (state) => state)
-      this.tabsAPI.setActive.reset()
       this.tabsAPI.forgetTab.reset()
     })
 
@@ -291,117 +290,6 @@ describe('tabsReducer unit tests', function () {
       tabsReducer(this.state, invalidAction)
       this.clock.tick(1510)
       assert(this.tabStateAPI.removeTabByTabId.notCalled)
-    })
-
-    describe('when updating active tab', function () {
-      describe('when TAB_CLOSE_ACTION is set to LAST_ACTIVE', function () {
-        before(function () {
-          tabCloseSetting = tabCloseAction.LAST_ACTIVE
-        })
-        after(function () {
-          tabCloseSetting = tabCloseAction.PARENT
-        })
-        it('chooses the last active tab', function () {
-          tabsReducer(this.state, action)
-          this.clock.tick(1510)
-          assert(this.tabsAPI.setActive.withArgs(3).calledOnce)
-          assert.equal(this.tabsAPI.updateTabsStateForWindow.getCall(0).args[1], 2)
-          assert(this.tabsAPI.forgetTab.withArgs(5).calledOnce)
-        })
-      })
-
-      describe('when TAB_CLOSE_ACTION is set to NEXT', function () {
-        before(function () {
-          tabCloseSetting = tabCloseAction.NEXT
-        })
-        after(function () {
-          tabCloseSetting = tabCloseAction.PARENT
-        })
-
-        it('chooses the next tab', function () {
-          const pickNextAction = {
-            actionType: action.actionType,
-            tabId: 3
-          }
-          const testState = this.state
-            .setIn(['tabs', 2, 'active'], true)
-            .setIn(['tabs', 2, 'openerTabId'], 5)
-            .setIn(['tabsInternal', 'lastActive', '2'], Immutable.fromJS([4, 5, 3]))
-          tabsReducer(testState, pickNextAction)
-          this.clock.tick(1510)
-          assert(this.tabsAPI.setActive.withArgs(4).calledOnce)
-          assert.equal(this.tabsAPI.updateTabsStateForWindow.getCall(0).args[1], 2)
-          assert(this.tabsAPI.forgetTab.withArgs(3).calledOnce)
-        })
-
-        it('chooses next unpinned tab', function () {
-          const pickNextAction = {
-            actionType: action.actionType,
-            tabId: 3
-          }
-          const testState = this.state
-            .setIn(['tabs', 2, 'active'], true)
-            .setIn(['tabs', 3, 'active'], false)
-            .setIn(['tabs', 3, 'pinned'], true)
-          tabsReducer(testState, pickNextAction)
-          this.clock.tick(1510)
-          assert(this.tabsAPI.setActive.withArgs(5).calledOnce)
-          assert.equal(this.tabsAPI.updateTabsStateForWindow.getCall(0).args[1], 2)
-          assert(this.tabsAPI.forgetTab.withArgs(3).calledOnce)
-        })
-
-        it('chooses previous unpinned tab', function () {
-          const testState = this.state
-            .setIn(['tabs', 2, 'active'], true)
-            .setIn(['tabs', 3, 'active'], false)
-            .setIn(['tabs', 3, 'pinned'], true)
-          tabsReducer(testState, action)
-          this.clock.tick(1510)
-          assert(this.tabsAPI.setActive.withArgs(3).calledOnce)
-          assert.equal(this.tabsAPI.updateTabsStateForWindow.getCall(0).args[1], 2)
-          assert(this.tabsAPI.forgetTab.withArgs(5).calledOnce)
-        })
-
-        describe('if no unpinned tabs come after this', function () {
-          it('considers pinned tabs which come after this', function () {
-            const pickNextAction = {
-              actionType: action.actionType,
-              tabId: 3
-            }
-            const testState = this.state
-              .setIn(['tabs', 2, 'active'], true)
-              .setIn(['tabs', 3, 'pinned'], true)
-              .setIn(['tabs', 4, 'active'], false)
-              .setIn(['tabs', 4, 'pinned'], true)
-            tabsReducer(testState, pickNextAction)
-            this.clock.tick(1510)
-            assert(this.tabsAPI.setActive.withArgs(4).calledOnce)
-            assert.equal(this.tabsAPI.updateTabsStateForWindow.getCall(0).args[1], 2)
-            assert(this.tabsAPI.forgetTab.withArgs(3).calledOnce)
-          })
-        })
-      })
-
-      describe('when TAB_CLOSE_ACTION is set to PARENT', function () {
-        it('chooses parent tab id (if parent tab was last active)', function () {
-          tabsReducer(this.state, action)
-          this.clock.tick(1510)
-          assert(this.tabsAPI.setActive.withArgs(4).calledOnce)
-          assert.equal(this.tabsAPI.updateTabsStateForWindow.getCall(0).args[1], 2)
-          assert(this.tabsAPI.forgetTab.withArgs(5).calledOnce)
-        })
-
-        it('chooses parent tab id (even if parent tab was NOT last active)', function () {
-          const testState = this.state
-            .setIn(['tabs', 4, 'openerTabId'], 3)
-            .setIn(['tabsInternal', 'lastActive', '2'], Immutable.fromJS([]))
-          tabsReducer(testState, action)
-          this.clock.tick(1510)
-          assert(this.tabsAPI.setActive.withArgs(3).calledOnce)
-          assert.equal(this.tabsAPI.updateTabsStateForWindow.getCall(0).args[1], 2)
-          assert(this.tabsAPI.forgetTab.withArgs(5).calledOnce)
-        })
-      })
     })
   })
 
@@ -463,6 +351,7 @@ describe('tabsReducer unit tests', function () {
 
     beforeEach(function () {
       this.closeWindowSpy = sinon.spy(this.windowsAPI, 'closeWindow')
+      this.tabsAPI.setActive.reset()
     })
 
     afterEach(function () {
@@ -501,6 +390,108 @@ describe('tabsReducer unit tests', function () {
         assert(this.tabsAPI.toggleDevTools.notCalled)
         assert(this.tabsAPI.closeTab.notCalled)
         assert(this.windowsAPI.closeWindow.notCalled)
+      })
+    })
+
+    describe('when tabId is of active tab', function () {
+      const actionActiveTab = {
+        actionType: action.actionType,
+        tabId: 5
+      }
+      describe('when TAB_CLOSE_ACTION is set to LAST_ACTIVE', function () {
+        before(function () {
+          tabCloseSetting = tabCloseAction.LAST_ACTIVE
+        })
+        after(function () {
+          tabCloseSetting = tabCloseAction.PARENT
+        })
+        it('chooses the last active tab', function () {
+          tabsReducer(this.state, actionActiveTab)
+          this.clock.tick(1510)
+          assert(this.tabsAPI.setActive.withArgs(3).calledOnce)
+        })
+      })
+
+      describe('when TAB_CLOSE_ACTION is set to NEXT', function () {
+        before(function () {
+          tabCloseSetting = tabCloseAction.NEXT
+        })
+        after(function () {
+          tabCloseSetting = tabCloseAction.PARENT
+        })
+
+        it('chooses the next tab', function () {
+          const pickNextAction = {
+            actionType: action.actionType,
+            tabId: 3
+          }
+          const testState = this.state
+            .setIn(['tabs', 2, 'active'], true)
+            .setIn(['tabs', 2, 'openerTabId'], 5)
+            .setIn(['tabsInternal', 'lastActive', '2'], Immutable.fromJS([4, 5, 3]))
+          tabsReducer(testState, pickNextAction)
+          this.clock.tick(1510)
+          assert(this.tabsAPI.setActive.withArgs(4).calledOnce)
+        })
+
+        it('chooses next unpinned tab', function () {
+          const pickNextAction = {
+            actionType: action.actionType,
+            tabId: 3
+          }
+          const testState = this.state
+            .setIn(['tabs', 2, 'active'], true)
+            .setIn(['tabs', 3, 'active'], false)
+            .setIn(['tabs', 3, 'pinned'], true)
+          tabsReducer(testState, pickNextAction)
+          this.clock.tick(1510)
+          assert(this.tabsAPI.setActive.withArgs(5).calledOnce)
+        })
+
+        it('chooses previous unpinned tab', function () {
+          const testState = this.state
+            .setIn(['tabs', 2, 'active'], true)
+            .setIn(['tabs', 3, 'active'], false)
+            .setIn(['tabs', 3, 'pinned'], true)
+          tabsReducer(testState, actionActiveTab)
+          this.clock.tick(1510)
+
+          assert(this.tabsAPI.setActive.withArgs(3).calledOnce)
+        })
+
+        describe('if no unpinned tabs come after this', function () {
+          it('considers pinned tabs which come after this', function () {
+            const pickNextAction = {
+              actionType: action.actionType,
+              tabId: 3
+            }
+            const testState = this.state
+              .setIn(['tabs', 2, 'active'], true)
+              .setIn(['tabs', 3, 'pinned'], true)
+              .setIn(['tabs', 4, 'active'], false)
+              .setIn(['tabs', 4, 'pinned'], true)
+            tabsReducer(testState, pickNextAction)
+            this.clock.tick(1510)
+            assert(this.tabsAPI.setActive.withArgs(4).calledOnce)
+          })
+        })
+      })
+
+      describe('when TAB_CLOSE_ACTION is set to PARENT', function () {
+        it('chooses parent tab id (if parent tab was last active)', function () {
+          tabsReducer(this.state, actionActiveTab)
+          this.clock.tick(1510)
+          assert(this.tabsAPI.setActive.withArgs(4).calledOnce)
+        })
+
+        it('chooses parent tab id (even if parent tab was NOT last active)', function () {
+          const testState = this.state
+            .setIn(['tabs', 4, 'openerTabId'], 3)
+            .setIn(['tabsInternal', 'lastActive', '2'], Immutable.fromJS([]))
+          tabsReducer(testState, actionActiveTab)
+          this.clock.tick(1510)
+          assert(this.tabsAPI.setActive.withArgs(3).calledOnce)
+        })
       })
     })
 
