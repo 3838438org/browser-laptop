@@ -141,7 +141,7 @@ const tabsReducer = (state, action, immutableAction) => {
       break
     case appConstants.APP_TAB_UPDATED:
       state = tabState.maybeCreateTab(state, action)
-      // tabs.debugTabs(state)
+      tabs.debugTabs(state)
       break
     case appConstants.APP_TAB_CLOSE_REQUESTED:
       {
@@ -188,6 +188,7 @@ const tabsReducer = (state, action, immutableAction) => {
                 const isActive = tabValue.get('active')
                 if (isActive) {
                   const nextActiveTabId = tabs.getNextActiveTab(state, tabId)
+                  console.log('closed tab', tabId, 'got next active tab', nextActiveTabId)
                   if (nextActiveTabId !== tabState.TAB_ID_NONE) {
                     tabs.setActive(nextActiveTabId)
                   }

@@ -80,6 +80,7 @@ class AppDispatcher {
    * @param  {object} payload The data from the action.
    */
   dispatch (payload) {
+    console.log(payload.actionType)
     if (payload.actionType === undefined) {
       throw new Error('Dispatcher: Undefined action for payload', payload)
     }

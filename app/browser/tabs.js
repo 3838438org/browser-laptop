@@ -71,6 +71,7 @@ const getTabValue = function (tabId) {
 
 const updateTab = (tabId, changeInfo = {}) => {
   let tabValue = getTabValue(tabId)
+  console.log('tab updated from muon', { tabId, changeIndex: changeInfo.index, changeActive: changeInfo.active, newIndex: tabValue && tabValue.get('index'), newActive: tabValue && tabValue.get('active') })
   if (tabValue) {
     appActions.tabUpdated(tabValue, makeImmutable(changeInfo))
   }
@@ -662,6 +663,7 @@ const api = {
   },
 
   setActive: (tabId) => {
+    console.log('setActive called', tabId)
     let tab = getWebContents(tabId)
     if (tab && !tab.isDestroyed()) {
       tab.setActive(true)
